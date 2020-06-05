@@ -1,0 +1,22 @@
+================================================================================
+ Package                  Arch      Version                  Repository    Size
+================================================================================
+Installing:
+ openssl-devel            i686      1.0.1e-48.el6_8.1        updates      1.2 M
+Installing for dependencies:
+ keyutils-libs-devel      i686      1.4-5.el6                base          29 k
+ krb5-devel               i686      1.10.3-57.el6            base         503 k
+ libcom_err-devel         i686      1.41.12-22.el6           base          32 k
+ libselinux-devel         i686      2.0.94-7.el6             base         137 k
+ libsepol-devel           i686      2.0.41-4.el6             base          64 k
+ zlib-devel               i686      1.2.3-29.el6             base          44 k
+Updating for dependencies:
+ e2fsprogs                i686      1.41.12-22.el6           base         555 k
+ e2fsprogs-libs           i686      1.41.12-22.el6           base         128 k
+ keyutils-libs            i686      1.4-5.el6                base          20 k
+ krb5-libs                i686      1.10.3-57.el6            base         778 k
+ libcom_err               i686      1.41.12-22.el6           base          37 k
+ libselinux               i686      2.0.94-7.el6             base         109 k
+ libselinux-utils         i686      2.0.94-7.el6             base          82 k
+ libss                    i686      1.41.12-22.el6           base          42 k
+ openssl                  i686      1.0.1e-48.el6_8.1        updates      1.5 M

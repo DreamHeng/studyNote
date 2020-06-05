@@ -1,0 +1,7 @@
+================================================================================
+ Package               Arch       Version                     Repository   Size
+================================================================================
+Updating:
+ yum                   noarch     3.2.29-75.el6.centos        updates     1.0 M
+Updating for dependencies:
+ python-urlgrabber     noarch     3.9.1-11.el6                base         86 k

@@ -1,0 +1,7 @@
+================================================================================
+ Package              Arch           Version               Repository      Size
+================================================================================
+Installing:
+ pcre-devel           i686           7.8-7.el6             base           320 k
+Updating for dependencies:
+ pcre                 i686           7.8-7.el6             base           196 k

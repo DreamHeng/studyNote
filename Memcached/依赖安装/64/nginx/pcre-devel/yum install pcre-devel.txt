@@ -1,0 +1,4 @@
+Installing:
+ pcre-devel           x86_64           7.8-7.el6           base           320 k
+Updating for dependencies:
+ pcre                 x86_64           7.8-7.el6           base           196 k

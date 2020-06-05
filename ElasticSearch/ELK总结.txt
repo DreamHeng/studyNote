@@ -1,0 +1,3 @@
+beat（filebeat）收集数据，然后传输给logstash；
+logstash利用Grok插件解析过滤数据，把格式化的数据传给ES；
+再利用Kibana对ES中的数据进行可视化展示

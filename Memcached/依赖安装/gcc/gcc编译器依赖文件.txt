@@ -1,0 +1,28 @@
+安装
+    gcc  有
+依赖
+    cloog-ppl  有 1
+    cpp  有 1
+    glibc-devel 有
+    glibc-headers 有
+    kernel-headers 有 1
+    libgomp 有 1
+    mpfr 有 1
+    ppl 有 1
+更新
+    glibc 有
+    glibc-common 有
+    libgcc 有
+    tzdata 有
+
+rpm -ivh cloog-ppl-0.15.7-1.2.el6.i686.rpm cpp-4.4.7-17.el6.i686.rpm glibc-devel-2.12-1.192.el6.i686.rpm glibc-headers-2.12-1.192.el6.i686.rpm kernel-headers-2.6.32-642.11.1.el6.i686.rpm libgomp-4.4.7-17.el6.i686.rpm mpfr-2.4.1-6.el6.i686.rpm ppl-0.10.2-11.el6.i686.rpm
+rpm -Uvh glibc-2.12-1.192.el6.i686.rpm glibc-common-2.12-1.192.el6.i686.rpm libgcc-4.4.7-17.el6.i686.rpm tzdata-2016j-1.el6.noarch.rpm
+
+rpm -ivh gcc-4.4.7-17.el6.i686.rpm
+	
+
+	
+
+
+
+

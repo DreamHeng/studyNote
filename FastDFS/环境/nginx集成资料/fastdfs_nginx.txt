@@ -1,0 +1,83 @@
+为什么要集成nginx fastdfs-nginx-module
+1. fastdfs 没有办法提供http服务，借助于nginx提供http服务支持
+2. 复制延迟问题
+	我们在使用FastDFS部署一个分布式文件系统的时候，通过FastDFS的客户端API来进行文件的上传、下载、删除等操作。
+	同时通过FastDFS的HTTP服务器来提供HTTP服务。但是FastDFS的HTTP服务较为简单，无法提供负载均衡等高性能的服务，
+	所以FastDFS的开发者——淘宝的架构师余庆同学，为我们提供了Nginx上使用的FastDFS模块（也可以叫FastDFS的Nginx模块）。其使用非常简单。
+	FastDFS通过Tracker服务器,将文件放在Storage服务器存储,但是同组之间的服务器需要复制文件,有延迟的问题.
+	假设Tracker服务器将文件上传到了192.168.1.80,文件ID已经返回客户端,这时,后台会将这个文件复制到192.168.1.30,如果复制没有完成,
+	客户端就用这个ID在192.168.1.30取文件,肯定会出现错误。
+	这个fastdfs-nginx-module可以重定向连接到源服务器取文件,避免客户端由于复制延迟的问题,出现错误。
+
+
+---------------------------------------------------------------------------------------
+
+1. 下载安装
+	 fastdfs 需 >=5.11
+2. yum install git
+2. git clone https://github.com/happyfish100/fastdfs-nginx-module.git
+3. wget http://nginx.org/download/nginx-1.11.1.tar.gz
+	
+	// 远程复制命令
+	scp nginx-1.11.1.tar.gz root@192.168.128.132:/usr/local/software/
+
+4. tar -zxvf nginx-1.11.1.tar.gz
+5. cd nginx-1.11.1
+6. ./configure --add-module=/usr/local/software/fastdfs-nginx-module/src/ --prefix=/usr/local/nginx
+7. make && make install
+
+8. cp /usr/local/software/fastdfs-nginx-module/src/mod_fastdfs.conf /etc/fdfs/
+9. cd /usr/local/software/fastdfs/conf/
+10. cp http.conf mime.types anti-steal.jpg /etc/fdfs/
+11. 修改storage nginx配置
+		# 修改nginx.conf
+		server {
+		    listen       8888;    ## 该端口为storage.conf中的http.server_port相同
+		    server_name  localhost;
+		    location ~/group[0-9]/ {
+		        ngx_fastdfs_module;
+		    }
+		    error_page   500 502 503 504  /50x.html;
+		    location = /50x.html {
+		    	root   html;
+		    }
+		}
+12. 修改/etc/fdfs/mod_fastdfs.conf配置文件
+		tracker_server=192.168.128.141:22122
+		url_have_group_name = true
+		group_name=group1
+		store_path0=/data/fastdfs/storage/store
+
+
+13. cd /usr/local/nginx/sbin
+	./nginx -t
+	./nginx -c /usr/local/nginx/conf/nginx.conf
+14. 测试storage nginx
+15. 搭建nginx 反向代理服务器
+	upstream fdfs_group1 {
+
+        server 192.168.128.137:80 weight=1 max_fails=2 fail_timeout=30s;
+
+        server 192.168.128.151:80 weight=1 max_fails=2 fail_timeout=30s;
+
+    }
+
+    upstream fdfs_group2 {
+
+        server 192.168.128.150:80 weight=1 max_fails=2 fail_timeout=30s;
+
+        server 192.168.128.152:80 weight=1 max_fails=2 fail_timeout=30s;
+
+    }
+    ---------------------------------------
+    location /group1/M00 {
+
+
+            proxy_pass http://fdfs_group1;
+
+        }
+	location /group2/M00 {
+
+            proxy_pass http://fdfs_group2;
+
+        }

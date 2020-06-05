@@ -1,0 +1,47 @@
+FastDFS本身支持文件的排重处理机制。但需要FastDHT作为文件hash的索引存储。FastDHT是同一个作者的开源key-value数据库。
+
+排重原理
+
+FastDFS的storage server每次上传均计算文件的hash值，然后从FastDHT服务器上进行查找比对，如果没有返回，则写入hash，并将文件保存
+
+如果有返回，则建立一个新的文件链接（软链），不保存文件。
+
+1.安装BerkeleyDB 下载db-4.7.25.tar.gz
+	[root@CentOS ~]# tar -zxf db-4.7.25.tar.gz
+	[root@CentOS ~]# cd db-4.7.25
+	[root@CentOS db-4.7.25]# cd build_unix/
+	[root@CentOS build_unix]# ./../dist/configure
+	[root@CentOS build_unix]# make
+	[root@CentOS build_unix]# make install
+2.安装FastDHT
+	[root@CentOS ~]# tar zxf FastDHT_v2.01.tar.gz
+	[root@CentOS ~]# cd FastDHT
+	[root@CentOS FastDHT]# ./make.sh
+	[root@CentOS FastDHT]# ./make.sh install
+3. 安装结束后会在/etc目录下产生fdht文件夹
+	/etc/fdht/
+		├── fdht_client.conf
+		├── fdhtd.conf
+		└── fdht_servers.conf
+	
+4. 配置
+	1.修改fdhtd.conf
+		base_path=/data/fastdht
+	2.修改fdht_servers.conf 
+		group_count = 1
+		group0 = 192.168.145.150:11411
+		
+	3.修改fdht_client.conf配置文件
+		base_path=/tmp/
+	4.启动FDHT服务
+		/usr/local/bin/fdhtd /etc/fdht/fdhtd.conf 
+	5.修改/etc/fdfs/storage.conf配置文件
+		check_file_duplicate=1
+		keep_alive=1
+		#include /etc/fdht/fdht_servers.conf
+5. 启动
+	1.分别启动fdhtd服务、fastdfs
+	[root@CentOS usr]# /usr/local/bin/fdhtd /etc/fdht/fdhtd.conf 
+	[root@CentOS usr]# /usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf start
+	[root@CentOS usr]# /usr/bin/fdfs_storaged /etc/fdfs/storage.conf start
+

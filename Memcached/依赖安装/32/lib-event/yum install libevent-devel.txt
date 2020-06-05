@@ -1,0 +1,15 @@
+Dependencies Resolved
+
+============================================================================================================
+ Package                        Arch                 Version                       Repository          Size
+============================================================================================================
+Installing:
+ libevent-devel                 i686                 1.4.13-4.el6                  base                71 k
+Installing for dependencies:
+ libevent                       i686                 1.4.13-4.el6                  base                67 k
+ libevent-doc                   noarch               1.4.13-4.el6                  base               194 k
+ libevent-headers               noarch               1.4.13-4.el6                  base                30 k
+
+Transaction Summary
+============================================================================================================
+Install       4 Package(s)
