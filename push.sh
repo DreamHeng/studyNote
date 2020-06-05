@@ -24,5 +24,13 @@ pid=$!
 
 wait ${pid}
 
-echo 'end...'
+echo '提交成功，5s后将自动关闭...'
+sleep 1
+echo '提交成功，4s后将自动关闭...'
+sleep 1
+echo '提交成功，3s后将自动关闭...'
+sleep 1
+echo '提交成功，2s后将自动关闭...'
+sleep 1
+echo '提交成功，1s后将自动关闭...'
 sleep 1
