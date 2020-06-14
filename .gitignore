@@ -1,0 +1,8 @@
+*.rpm
+*.exe
+*.gz
+*.zip
+*.rar
+*.7z
+.gitignore
+*.idea
