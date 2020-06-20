@@ -10,7 +10,7 @@
 
 ​	HashMap底层对取key的hash值进行了优化：
 - key为null，则hash值为0；
-- key不为null，取key的hashCode()为h(int类型,32位)，在和h右移16位(即前16位全置为0,后16位置为原前16位)做异或运算(^)[^1]；这样做的目的是为了使hash值充分均匀，。
+- key不为null，取key的hashCode()为h(int类型,32位)，在和h右移16位(即前16位全置为0,后16位置为原前16位)做异或运算(^)[^1]；这样做的目的是为了使hash值充分均匀。
 
 ​	HashMap底层取hash的优化源码如下（JDK1.8）：
 
@@ -42,7 +42,7 @@ static final int hash(Object key) {
 
 ##### 5.扩容
 
-​	HashMap里面有四个参数（size实际容量、threshold实际最大容量、loadFactor负载因子），threshold为初始化长度乘loadFactor，当添加完一个key后size若大于threshold，则进行扩容操作，扩容两倍，并进行rehash操作。
+​	HashMap里面有三个参数（size实际容量、threshold实际最大容量、loadFactor负载因子），threshold为初始化长度乘loadFactor，当添加完一个key后size若大于threshold，则进行扩容操作，扩容两倍，并进行rehash操作。
 
 ​	由于在hash寻址的时候进行了优化，求key在数组中的索引是用key的hash值和数组长度N减一做**与运算**，结果只与hash值的后N有关；
 
@@ -74,7 +74,7 @@ static final int hash(Object key) {
 
 - 为什么为什么要先高16位异或低16位再取模运算?
 
-- 知道hashmap中put元素的过程是什么样么?
+- **知道hashmap中put元素的过程是什么样么?**
 
   对key的hashCode()做hash运算，计算index; 如果没碰撞直接放到bucket里； 如果碰撞了，以链表的形式存在buckets后； 如果碰撞导致链表过长(大于等于TREEIFY_THRESHOLD)，就把链表转换成红黑树(JDK1.8中的改动)； 如果节点已经存在就替换old value(保证key的唯一性)；如果bucket满了(超过load factor*current capacity)，就要resize。
 
