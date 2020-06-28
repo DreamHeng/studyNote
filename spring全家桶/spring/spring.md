@@ -101,7 +101,15 @@
 
 SpringBoot自动装配中默认开启了事务管理（@EnableTransactionManagement），以aop形式插入动态代理配置中。
 
+### 3.Spring中用到的设计模式（TODO待完善）
 
+​	单例模式，工厂模式，动态代理
+
+Spring创建bean默认就是单例的。
+
+Spring的ioc的实现实际就是将Spring容器当作一个大工厂，把所有单例bean的管理都交给工厂来干。
+
+Spring的AOP模式就是通过实现被代理的动态代理。
 
 
 
@@ -141,11 +149,46 @@ SpringBoot自动装配中默认开启了事务管理（@EnableTransactionManagem
 
 ​	Spring的bean不是线程安全的。在默认情况下，创建出来的bean都是单例的，就是说多个请求进来使用的bean是同一个，Spring工厂只创建一个bean实例，但是Spring在使用bean的过程中，不使用线程不安全的实例变量，将请求的参数设置成方法参数的形式，使得本身线程不安全的bean却有了线程安全的目的。
 
-2.
+### 2.Spring的bean的循环依赖问题？
 
+​	这个问题实际上就是two nums问题，就是在一个数组中找出指定和的两个数的索引，解决思路就是一次遍历数组+HashMap：遍历这个数组，从索引0开始，计算指定和减去当前索引处的数的结果，判断这个结果是否在Map中存在，若不存在，则将索引0当value，key为数值存入map，继续下一次循环；若存在，则索引为map的value，以及当前遍历的索引。
 
+​	Spring中解决该问题即是通过一个CacheMap，循环遍历待创建的bean数组，先判断Map中是否已存在此bean，存在则返回，不存在则通过无参构造创建实例化对象，然后放入map，再接着循环赋属性，如果碰到有对象属性，则从map中取，若没有，则进入创建过程，如此循环。
 
+### 3.Spring的bean的生命周期
 
+​	Spring容器对于配置了prototype作用域的bean只创建，之后就不再管，对于其他类型的bean从创建到销毁都负责。此类bean生命周期如下：
+
+![image-20200627164540395](spring.assets/image-20200627164540395.png)
+
+1）根据配置情况调用 Bean 构造方法或工厂方法实例化 Bean。
+
+2）利用依赖注入完成 Bean 中所有属性值的配置注入。
+
+3）如果 Bean 实现了 BeanNameAware 接口，则 Spring 调用 Bean 的 setBeanName() 方法传入当前 Bean 的 id 值。
+
+4）如果 Bean 实现了 BeanFactoryAware 接口，则 Spring 调用 setBeanFactory() 方法传入当前工厂实例的引用。
+
+5）如果 Bean 实现了 ApplicationContextAware 接口，则 Spring 调用 setApplicationContext() 方法传入当前 ApplicationContext 实例的引用。
+
+6）如果 BeanPostProcessor 和 Bean 关联，则 Spring 将调用该接口的预初始化方法 postProcessBeforeInitialzation() 对 Bean 进行加工操作，此处非常重要，Spring 的 AOP 就是利用它实现的。
+
+7）如果 Bean 实现了 InitializingBean 接口，则 Spring 将调用 afterPropertiesSet() 方法。
+
+8）如果在配置文件中通过 init-method 属性指定了初始化方法，则调用该初始化方法。
+
+9）如果 BeanPostProcessor 和 Bean 关联，则 Spring 将调用该接口的初始化方法 postProcessAfterInitialization()。此时，Bean 已经可以被应用系统使用了。
+
+10）如果在 <bean> 中指定了该 Bean 的作用范围为 scope="singleton"，则将该 Bean 放入 Spring IoC 的缓存池中，将触发 Spring 对该 Bean 的生命周期管理；如果在 <bean> 中指定了该 Bean 的作用范围为 scope="prototype"，则将该 Bean 交给调用者，调用者管理该 Bean 的生命周期，Spring 不再管理该 Bean。
+
+11）如果 Bean 实现了 DisposableBean 接口，则 Spring 会调用 destory() 方法将 Spring 中的 Bean 销毁；如果在配置文件中通过 destory-method 属性指定了 Bean 的销毁方法，则 Spring 将调用该方法对 Bean 进行销毁。
+
+### 4.SpringMVC的运行流程
+
+1. 请求进入web.xml，符合SpringMVC前端控制器的规则进入SpringMVC框架；
+2. 根据uri判断要进入的controller，以及该类下的方法；
+3. 执行完毕返回字符串；
+4. 根据返回字符串+视图解析器的方式得到真实地址，请求转发（前后端分离情况下返回前端json字符串）。
 
 
 

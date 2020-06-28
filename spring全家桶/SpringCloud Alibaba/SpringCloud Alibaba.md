@@ -1,5 +1,12 @@
 # SpringCloud Alibaba
 
+## 执行流程
+
+1. 请求通过统一网关（SpringCloud Gateway）来访问内部服务；
+2. 网关获取到请求中，从注册中心（Nacos）获取到可用服务；
+3. 由OpenFeign进行均衡负载后，分发到具体实例；
+4. Sentinel负责处理服务超时熔断。
+
 ## 选择Alibaba的原因
 
 ##### SpringCloud缺点
