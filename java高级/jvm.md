@@ -179,3 +179,46 @@ java堆各个区域的划分（TODO）
 #### 3.6. G1
 
 ​	G1(Garbage First)收集器技术的前沿成果，是面向服务端的收集器，能充分利用CPU和多核环境。是一款并行与并发收集器，它能够建立可预测的停顿时间模型。
+
+## 三.JVM参数
+
+### 1.Tomcat生产中如何设置JVM参数？
+
+​	启动时以命令形式添加或者在tomcat的bin目录下的catalina.bat设置参数。
+
+![image-20200704181630110](jvm.assets/image-20200704181630110.png)
+
+待详细分析（TODO）
+
+### 2.如何检查JVM运行情况？
+
+​	可以使用JDK自带的JVM工具Java Visual来查看tomcat中的jvm参数。（命令行输入`jvisualvm`）
+
+![image-20200704181733184](jvm.assets/image-20200704181733184.png)
+
+带详细分析（TODO）
+
+## 四.JVM调优
+
+​	使用压测工具进行测试下本地环境，然后调试下JVM参数。
+
+待实战测试（TODO）。
+
+## 五.常见问题
+
+### 1.OOM问题如何解决？
+
+​	可以在JVM中设置几个参数，让JVM在发生OOM的时候生成一个内存快照。分析这个快照里面哪个对象比较多，联系项目，定位这个对象多的原因，根据情况解决。
+
+生成内存快照的参数：
+
+- -XX:+HeapDumpOnOutOfMemoryError，内存溢出时自动导出内存快照
+- -XX:HeapDumpPath=E:/dumps/，导出内存快照时保存的路径
+
+​	除了OOM情况下自动生成内存快照，也可以使用jmap命令生成内存堆转储快照，一般称为heapdump文件或dump文件。
+
+jmap命令待测试（TODO）。
+
+​	对于内存快照可以用专门的工具分析，可以使用linux下的mat，即Memory Analyzer Tools。
+
+内存快照分析待学习（TODO）
