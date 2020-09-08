@@ -95,7 +95,7 @@
 make
 ```
 
-8. 安装 
+8. 安装 （默认安装位置为默认安装位置为/usr/local/nginx）
 
 ```shell
 make install
@@ -138,6 +138,16 @@ make install
 
 
 
+#### 扩展：网络编程的一些概念：同步 异步、阻塞和非阻塞
+
+​	同步和异步其实是从消息的通知机制方面来说的。同步调用就是指调用方发出一个同步调用，一直等待结果的返回，并依赖这个返回进行下一步处理。异步调用指的是调用方发出一个异步调用后，继续执行后续操作，不依赖于此返回，后续的结果由调用方通过循环获取状态或者被调用方通过通知、回调函数的形式返回给调用方，像通过状态这种效率低，不建议使用。作为一个任务序列来说，同步调用强调执行并得到返回结果，属于可靠的序列，但异步只需要执行并不在乎结果，属于不可靠的。
+
+​	阻塞和非阻塞其实是从程序（线程）等待消息时的状态来说的，阻塞就是说线程执行一件事若没有执行完就不会执行下一件事，非阻塞是说程序调用时，若不能及时得到结果，就会转而执行另一件事。
+
+​	这四个概念两两组合就是我们常见的网络编程形式，同步阻塞、同步非阻塞、异步阻塞、异步非阻塞；除第三个外一一对应BIO、NIO、AIO。
+
+​	
+
 #### 3.nginx.conf 核心配置文件
 
 1. 设置worker进程的用户，指的linux中的用户，会涉及到nginx操作目录或文件的一些权限，默认为 nobody
@@ -156,7 +166,7 @@ worker_processes 1;
 
 3. nginx 日志级别 debug | info | notice | warn | error | crit | alert | emerg ，错误级别从左到右越来越大 
 
-4. 设置nginx进程 pid 
+4. 设置nginx进程 pid （就是存放nginx当前启动的进程号）
 
 ```shell
 pid logs/nginx.pid; 
@@ -167,7 +177,7 @@ pid logs/nginx.pid;
 ```shell
 events { 
 
-# 默认使用epoll 
+# 默认使用epoll （可以根据不同的操作系统使用不同的工作模式）
 
 use epoll; 
 
@@ -182,7 +192,7 @@ worker_connections 10240;
 
 ```shell
 http { 
-
+	
 } 
 ```
 
@@ -192,7 +202,13 @@ http {
 include mime.types; 
 ```
 
-8. 设定日志格式， main 为定义的格式名称，如此 access_log 就可以直接使用这个变量了
+8. log_format设定日志格式， main 为定义的格式名称，如此 access_log 就可以直接使用这个变量了（log_format与access_log搭配使用）
+
+       #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+       #                  '$status $body_bytes_sent "$http_referer" '
+       #                  '"$http_user_agent" "$http_x_forwarded_for"';
+       
+       #access_log  logs/access.log  main;
 
 | 参数名                | 参数意义                             |
 | --------------------- | ------------------------------------ |
@@ -217,7 +233,7 @@ tcp_nopush on;
 10. keepalive_timeout 设置客户端与服务端请求的超时时间，保证客户端多次请求的时候不会重复建立新的连接，节约资源损耗。 
 
 ```shell
-#keepalive_timeout 0; 
+#keepalive_timeout 0; 单位为秒
 
 keepalive_timeout 65;
 ```
@@ -349,8 +365,65 @@ server {
             alias  /workspaces/images/foodie/faces/191218H9SFHA66A8;
             index  face-191218H9SFHA66A8.jpg;
         }
+        
+        
+        #以下配置可利用nginx实现跨域
+        #允许跨域请求的域，*代表所有 
+        add_header 'Access-Control-Allow-Origin' *; 
+        #允许带上cookie请求 
+        add_header 'Access-Control-Allow-Credentials' 'true'; 
+        #允许请求的方法，比如 GET/POST/PUT/DELETE 
+        add_header 'Access-Control-Allow-Methods' *; 
+        #允许请求的header 
+        add_header 'Access-Control-Allow-Headers' *;
 
     }
+```
+
+##### 扩展：SpringBoot实现跨域：
+
+```java
+package com.dreamshop.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+/**
+ * function: 跨域设置配置类
+ * @author DreamHeng
+ * @date 2019/12/18
+ */
+@Configuration
+public class CorsConfig {
+
+    public CorsConfig() {
+    }
+
+    @Bean
+    public CorsFilter corsFilter(){
+        //1.添加cors配置信息
+        CorsConfiguration config = new CorsConfiguration();
+        //添加支持的网址
+        config.addAllowedOrigin("http://localhost:8080");
+        config.addAllowedOrigin("*");
+        //设置是否发送cookie信息
+        config.setAllowCredentials(true);
+        //设置允许请求的方式
+        config.addAllowedMethod("*");
+        //设置允许的header
+        config.addAllowedHeader("*");
+
+        //2.为url添加映射路径
+        UrlBasedCorsConfigurationSource corsConfigSource = new UrlBasedCorsConfigurationSource();
+        corsConfigSource.registerCorsConfiguration("/**",config);
+
+        //3.返回重新定义好的CorsFilter
+        return new CorsFilter(corsConfigSource);
+    }
+}
 ```
 
 ##### location的匹配规则
@@ -409,8 +482,6 @@ location ^~ /imooc/img {
 }
 ```
 
-
-
 ##### Nginx 防盗链配置支持
 
 ​	Nginx是防止其它网站随意引用本网站下的静态资源进行的保护措施。在http-->server里面配置：
@@ -424,3 +495,48 @@ if ($invalid_referer) {
 }
 ```
 
+
+
+#### 6.Nginx实现反向代理功能
+
+​	反向代理就是指代理服务器接收客户端的请求，然后分发给具体处理请求的后端服务器。
+
+​	Nginx作为反向代理的最大好处就是基于它异步非阻塞的请求机制，可以非常高效的处理和分发请求，使得后端服务器只需要负责逻辑运算，节约等待时间处理更多请求。
+
+##### 反向代理基本配置
+
+```shell
+upstream baidunode {
+	server 172.25.0.105:8081 weight=10 max_fails=3     fail_timeout=30s;
+}
+location / {
+    add_header Cache-Control no-cache;
+    proxy_set_header   Host local.baidu.com;
+    proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Real-IP        $remote_addr;
+    proxy_pass         http://baidunode;
+    proxy_connect_timeout 30s;
+ }
+```
+
+下面就代码里的配置做说明：
+ 	nginx配置文件通过使用`add_header`指令来设置`response header`，`response header`一般都是以key：value的形式，例如：“Content-Encoding：gzip、Cache-Control:no-store”，设置的命令为：
+
+```shell
+add_header Cache-Control no-store
+add_header Content-Encoding gzip
+```
+
+nginx 为实现反向代理的需求增加了一个 [ngx_http_proxy_module 模块](https://link.jianshu.com?t=http://nginx.org/en/docs/http/ngx_http_proxy_module.html)。其中 proxy_set_header 指令就是该模块需要读取的配置。
+ 现在对每句配置做个说明
+
+- `proxy_set_header Host local.baidu.com;`
+   HTTP header 中的 Host 含义为所请求的目的主机名。当 nginx 作为反向代理使用，而后端真实 web 服务器设置有类似 **防盗链功能** ，或者根据 HTTP header 中的 Host 字段来进行 **路由** 或 **过滤** 功能的话，若作为反向代理的 nginx 不重写请求头中的 Host 字段，将会导致请求失败。
+- `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`
+   HTTP header 中的  X_Forward_For  表示该条 http 请求是由谁发起的。如果反向代理服务器不重写该请求头的话，那么后端真实 web 服务器在处理时会认为所有的请求都来自反向代理服务器。如果后端 web 服务器有防攻击策略的话，那么反向代理服务器对应的 ip 地址就会被封掉。
+   上述配置的意思是增加一个 `$proxy_add_x_forwarded_for` 到 `X-Forwarded-For`里去，注意是增加，而不是覆盖。当然由于默认的 `X-Forwarded-For` 值是空的，所以我们总感觉 `X-Forwarded-For` 的值就等于 `$proxy_add_x_forwarded_for` 的值。
+   `X-Forwarded-For`的格式为`X-Forwarded-For:real client ip, proxy ip 1, proxy ip N`，每经过一个反向代理就在请求头X-Forwarded-For后追加反向代理IP。
+- `proxy_connect_timeout`
+   nginx服务器与被代理的服务器建立连接的超时时间，默认60秒
+
+详细配置可参考：https://www.cnblogs.com/knowledgesea/p/5199046.html
