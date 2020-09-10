@@ -1,6 +1,6 @@
 # Nginx
 
-#### 1.在CentOS7上安装Nginx
+### 1.在CentOS7上安装Nginx
 
 1. 去官网http://nginx.org/下载对应的nginx包，推荐使用稳定版本 
 
@@ -130,7 +130,7 @@ make install
 
 
 
-#### 2.Nginx的请求机制
+### 2.Nginx的请求机制
 
 ​	nginx的请求机制是异步非阻塞形式的，所以非常高效，且节约系统资源。
 
@@ -138,7 +138,7 @@ make install
 
 
 
-#### 扩展：网络编程的一些概念：同步 异步、阻塞和非阻塞
+### 扩展：网络编程的一些概念：同步 异步、阻塞和非阻塞
 
 ​	同步和异步其实是从消息的通知机制方面来说的。同步调用就是指调用方发出一个同步调用，一直等待结果的返回，并依赖这个返回进行下一步处理。异步调用指的是调用方发出一个异步调用后，继续执行后续操作，不依赖于此返回，后续的结果由调用方通过循环获取状态或者被调用方通过通知、回调函数的形式返回给调用方，像通过状态这种效率低，不建议使用。作为一个任务序列来说，同步调用强调执行并得到返回结果，属于可靠的序列，但异步只需要执行并不在乎结果，属于不可靠的。
 
@@ -148,7 +148,7 @@ make install
 
 ​	
 
-#### 3.nginx.conf 核心配置文件
+### 3.nginx.conf 核心配置文件
 
 1. 设置worker进程的用户，指的linux中的用户，会涉及到nginx操作目录或文件的一些权限，默认为 nobody
 
@@ -253,7 +253,7 @@ gzip_types text/plain/...;
 
 
 
-##### tip：nginx.pid打开失败或者失效的解决方法
+#### tip：nginx.pid打开失败或者失效的解决方法
 
 ​	打开失败可以重新创建nginx.pid父级文件夹路径，失效可以重新配置nginx配置文件：
 
@@ -261,7 +261,7 @@ gzip_types text/plain/...;
 ./nginx -c /usr/local/nginx/conf/nginx.conf
 ```
 
-#### 4.Nginx日志切割
+### 4.Nginx日志切割
 
 ​	Nginx日志切割就是把Nginx中的请求日志(access.log)和错误日志(erro.log)按照一定的规则切割为小文件，防止单个文件过大，方式有两种：手动和定时。手动就是指手动执行脚本切割，定时就是用定时任务按时切割文件。在Linux中可以用**crontabs**。
 
@@ -340,7 +340,7 @@ crontab -l // 查看任务列表
 
 
 
-#### 5.Nginx作为虚拟主机为静态资源提供服务
+### 5.Nginx作为虚拟主机为静态资源提供服务
 
 
 
@@ -380,7 +380,7 @@ server {
     }
 ```
 
-##### 扩展：SpringBoot实现跨域：
+#### 扩展：SpringBoot实现跨域：
 
 ```java
 package com.dreamshop.config;
@@ -497,13 +497,13 @@ if ($invalid_referer) {
 
 
 
-#### 6.Nginx实现反向代理功能
+### 6.Nginx实现反向代理功能
 
 ​	反向代理就是指代理服务器接收客户端的请求，然后分发给具体处理请求的后端服务器。
 
 ​	Nginx作为反向代理的最大好处就是基于它异步非阻塞的请求机制，可以非常高效的处理和分发请求，使得后端服务器只需要负责逻辑运算，节约等待时间处理更多请求。
 
-##### 反向代理基本配置
+#### 反向代理基本配置
 
 ```shell
 upstream baidunode {
@@ -540,3 +540,178 @@ nginx 为实现反向代理的需求增加了一个 [ngx_http_proxy_module 模�
    nginx服务器与被代理的服务器建立连接的超时时间，默认60秒
 
 详细配置可参考：https://www.cnblogs.com/knowledgesea/p/5199046.html
+
+### 扩展：利用JMeter简单测试多并发请求
+
+1.首先下载JMeter，可直接在官网下载，win直接启动bin里面的jmeter.bat
+
+2.建立测试计划，再创建一个线程组，设置好线程数、单线程请求次数和每次请求等待时间，![image-20200910221043247](Nginx.assets/image-20200910221043247.png)
+
+3.为该线程添加一个取样器-->HTTP请求，并添加监听器，聚合报告、察看结果树、用表格察看结果等多个辅助察看的监听器。测试数据量很大的情况下可以选择把察看结果树的文件写入到一个文件里。
+
+4.点击上方绿色键开始，点击双扫把键清除全部。
+
+![image-20200910221515279](Nginx.assets/image-20200910221515279.png)
+
+5.测试结果：
+
+单服务器情况下，5000线程，单线程请求10次，异常率为4.5%
+
+![image-20200910221900900](Nginx.assets/image-20200910221900900.png)
+
+### 7.Nginx实现负载均衡（通过upstream模块实现）
+
+​	Nginx可以在upstream的服务器后面添加某些配置实现服务器负载均衡的目的。
+
+​	轮询策略：默认即轮询策略，即轮流访问服务器
+
+​	权重轮询策略：可以在服务器url后面加上weight表示权重，默认weight为1，表示权重相同。如下配置，表示nginx分发到三个服务器的请求比例为1:2:3。
+
+```shell
+    server 192.168.93.130:9000 weight=1;
+    server 192.168.93.130:9100 weight=2;
+    server 192.168.93.130:9200 weight=3;
+```
+#### upstream指令参数
+
+##### ①.max_conns  
+
+```shell
+设置upstream中某台服务器的最大连接数,默认0,指无限制
+  
+  upstream tomcats {
+           server 192.168.93.130:9000 max_conns=2;
+  }
+  
+  假设现在就一个tomcat在处理用户请求,将nginx.conf中的worker数量改成1,通过Jmeter压测该服务,因为该tomcat接收连接的最大连接数就2,超过处理不过来在Nginx网关层就会返回502错误. Response Code 502, Response Message: Bad Gateway
+```
+
+##### ②.slow_start
+
+```shell
+   1) 启动服务时缓慢启动,慢慢的加入到集群,不要让流量一下子进来,便于让运维人员监控流量从小到大的一个处理过程,默认关闭
+   2) 它的原理是设置slow_start=time之后,将该server的权重从0恢复到其设定值,相当于流量慢慢变大
+   3) 所以它不适用于hash和随机负载均衡算法. 
+   4) 如果集群中就只有一个服务节点,则即使设置了该参数也会被忽略
+   5) 商业版中才支持
+   
+   upstream tomcats {
+            server 192.168.93.130:9000 weight=6 slow_start=60s;
+   }
+```
+
+##### ③.down
+
+```shell
+指定该服务器不可用
+	
+   upstream tomcats {
+            server 192.168.93.130:9000 down;
+   }
+```
+
+##### ④.backup
+
+```shell
+备份,只有在其他服务不可用时才提供服务
+	
+   upstream tomcats {
+            server 192.168.93.130:9000 backup;
+   }
+```
+
+##### ⑤.max_fails和fail_timeout
+
+```shell
+max_fails最大失败次数,当超过该次数时,认为该服务挂掉了,nginx会把它剔除掉
+fail_timeout配合max_fails使用,当nginx认为某服务挂掉之后,在fail_timeout之内不会再放请求进来,之后再尝试放流量进来
+max_fails=2 fail_timeout=15s
+则代表在15秒内请求某一server失败达到2次后，则认为该server已经挂了或者宕机了，随后再过15秒，这15秒内不会有新的请求到达刚刚挂掉的节点上，而是会发到运作的server，15秒后会再有新请求尝试连接挂掉的server，如果还是失败，重复上一过程，直到恢复。
+```
+
+##### ⑦.keepalive提高吞吐量
+
+​	keepalive是指保持长连接的数量，不超过就保持长连接，超过就关闭最近最少使用的连接
+
+```shell
+upstream tomcats {
+            server 192.168.93.130:9000;
+            
+            keepalive 32;
+}
+```
+
+​	对于http而言，应额外修改sever下location里的配置，[proxy_http_version](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_http_version)指令设置为 `1.1`，并清除`Connection`标头字段
+
+```shell
+upstream http_backend {
+    server 192.168.93.130:9000;
+            
+    keepalive 32;
+}
+
+server {
+    ...
+
+    location /http/ {
+        proxy_pass http://http_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        ...
+    }
+}
+```
+
+##### ⑧ip_hash
+
+​	ip_hash机制其实就是将固定ip固定到某个固定的服务器，IPV4是以前三位ip地址为密钥，IPV6是以整个ip为密钥，进行hash计算算出请求服务器的下标。该算法也是数据库分库时的常用算法。该算法可用于一定程度的会话保存，但由于用户ip可能会变，故此会话保存并不太可靠。
+
+```shell
+upstream tomcats { 
+	ip_hash; 
+	
+	server 192.168.1.173:8080; 
+	server 192.168.1.174:8080 down; 
+	server 192.168.1.175:8080; 
+}
+```
+
+如果中间有一台服务器要删除，不能直接删除配置，应在后配置`down`，以保留当前服务器的hash值，不影响其它服务器的会话。
+
+> 注意：在版本1.3.1和1.2.2之前，无法使用`ip_hash`负载平衡方法为服务器指定权重。
+
+##### ⑨url_hash和least_conn
+
+​	url_hash就是根据每次请求的uri地址，hash后访问到固定的服务器节点。
+
+​	least_conn就是请求最近最少连接数的服务器。
+
+```shell
+upstream tomcats { 
+	# url hash 
+	hash $request_uri; 
+	# 最少连接数 
+	# least_conn 
+	
+	server 192.168.1.173:8080; 
+	server 192.168.1.174:8080; 
+	server 192.168.1.175:8080;
+}
+```
+
+##### ⑩一致性hash
+
+​	一致性hash就是指使用一致性hash算法进行ip或uri的hash算法。需添加nginx_upstream_hash模块
+
+TODO https://blog.csdn.net/rjgcx2/article/details/12750137
+
+
+
+##### 扩展：一致性hash算法
+
+​	在需要缓存的服务器中，使用一致性hash算法的比较多。
+
+简述：
+
+​	一致性hash算法，就是提前创建2的32次方个节点，从0到2的32次方减一，依次围成一个环，将服务器节点放在这些节点上，当有请求来时，通过hash算法算出节点的hash值，找到该hash值顺时针最近的一个节点，将请求发往此节点。这样即使有增加或删除节点，也只会对该节点周围的hash值即其你去有影响，对其他的没有影响，而且还可以根据请求散列分布图，计算出哪些节点请求多，在该节点范围相应增加节点。组成环的节点数可根据需要更改。
+
