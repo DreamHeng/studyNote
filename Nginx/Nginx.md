@@ -1,5 +1,7 @@
 # Nginx
 
+## 一.Nginx基础知识
+
 ### 1.在CentOS7上安装Nginx
 
 1. 去官网http://nginx.org/下载对应的nginx包，推荐使用稳定版本 
@@ -703,9 +705,67 @@ upstream tomcats {
 
 ​	一致性hash就是指使用一致性hash算法进行ip或uri的hash算法。需添加nginx_upstream_hash模块
 
-TODO https://blog.csdn.net/rjgcx2/article/details/12750137
+配置步骤：
 
+1. 先下载第三方模块ngx_http_consistent_hash，https://github.com/replay/ngx_http_consistent_hash
 
+2. ```shell
+   #如果没有安装zip解压缩用以下命令解压
+   yum install -y unzip zip
+   #解压出来
+   unzip ngx_http_consistent_hash-master.zip
+   ```
+
+3. 编译到nginx
+
+   ```shell
+   #在进行以下配置的时候，应把前面配置的都加上，不然会出问题，不知道什么原因，待详细分析TODO
+   ./configure --add-module=/usr/ngx_http_consistent_hash-master
+   make
+   make install
+   ```
+
+4. 进行conf配置
+
+   ```shell
+   upstream tomcats { 
+   	#以下为利用用户请求的uri做hash一致性算法
+   	consistent_hash $request_uri;
+   	#以下为利用用户请求ip
+   	# consistent_hash $remote_addr;
+   	
+   	server 192.168.1.173:8080; 
+   	server 192.168.1.174:8080; 
+   	server 192.168.1.175:8080;
+   }
+   ```
+
+##### 扩展：Nginx内置变量的差别
+
+​	$uri，这个是指用户请求的完整的uri
+
+​	$request_uri，这是指用户请求的完整uri的上级父路径，即不包括最后边的资源
+
+```shell
+案例1：
+访问：http://192.168.128.137/test/
+$uri：/test/test.html
+$request_uri：/test/
+
+案例2：
+访问：http://192.168.128.137/
+$uri：/jiade.html
+$request_uri：/
+
+案例3（真实名字服务器上不存在res目录）：
+访问：http://192.168.128.137/res
+$uri：/res
+$request_uri：/res
+```
+
+​	$remote_addr，remote_addr代表客户端的IP，但它的值不是由客户端提供的，而是服务端根据客户端的ip指定的，当你的浏览器访问某个网站时，假设中间没有任何代理，那么网站的web服务器（Nginx，Apache等）就会把remote_addr设为你的机器IP，如果你用了某个代理，那么你的浏览器会先访问这个代理，然后再由这个代理转发到网站，这样web服务器就会把remote_addr设为这台代理机器的IP。
+
+> 参考：https://developer.aliyun.com/article/532702
 
 ##### 扩展：一致性hash算法
 
@@ -715,3 +775,305 @@ TODO https://blog.csdn.net/rjgcx2/article/details/12750137
 
 ​	一致性hash算法，就是提前创建2的32次方个节点，从0到2的32次方减一，依次围成一个环，将服务器节点放在这些节点上，当有请求来时，通过hash算法算出节点的hash值，找到该hash值顺时针最近的一个节点，将请求发往此节点。这样即使有增加或删除节点，也只会对该节点周围的hash值即其你去有影响，对其他的没有影响，而且还可以根据请求散列分布图，计算出哪些节点请求多，在该节点范围相应增加节点。组成环的节点数可根据需要更改。
 
+### 8.Nginx缓存
+
+​	nginx缓存分为两类，分别为浏览器缓存和nginx缓存；
+
+**①浏览器缓存：**
+
+- 加速用户访问，提升单个用户（浏览器访问者）体验，缓存在本地
+
+**②Nginx缓存**
+
+- 缓存在nginx端，提升所有访问到nginx这一端的用户
+
+- 提升访问上游（upstream）服务器的速度
+
+- 用户访问仍然会产生请求流量
+
+控制浏览器缓存方式：
+
+```shell
+location /files { 
+	alias /home/imooc; 
+	# expires 10s; 
+	# expires @22h30m; #当天的晚上十点半过期
+	# expires -1h;     #即过往时间，不使用缓存
+	# expires epoch;   #不使用缓存
+	# expires off;     #使用浏览器默认的缓存机制
+	expires max;       #设置最大过期时间，永不过期
+}
+```
+
+nginx反向代理缓存设置（即上方第二种）：
+
+```shell
+# proxy_cache_path 设置缓存目录 
+# keys_zone 设置共享内存以及占用空间大小 
+# max_size 设置缓存大小 
+# inactive 超过此时间则被清理 
+# use_temp_path 临时目录，使用后会影响nginx性能 
+proxy_cache_path /usr/local/nginx/upstream_cache keys_zone=mycache:5m max_size=1g inactive=1m use_temp_path=off;
+```
+
+```shell
+location / { 
+	proxy_pass http://tomcats; 
+	# 启用缓存，和keys_zone一致 
+	proxy_cache mycache; 
+	# 针对200和304状态码缓存时间为8小时 
+	proxy_cache_valid 200 304 8h; 
+}
+```
+
+### 9.配置SSL证书（https）
+
+首先nginx要安装ssl模块，
+
+```shell
+#在重新配置一遍，加上下面一行
+--with-http_ssl_module
+```
+
+然后配置
+
+- 把ssl证书 *.crt 和 私钥 *.key 拷贝到 /usr/local/nginx/conf 目录中。
+- 新增 server 监听 443 端口，并添加nginx配置，
+
+```shell
+server { 
+	listen 443; 
+	server_name www.imoocdsp.com; 
+	
+	# 开启ssl 
+	ssl on; 
+	# 配置ssl证书 
+	ssl_certificate 1_www.imoocdsp.com_bundle.crt; 
+	# 配置证书秘钥 
+	ssl_certificate_key 2_www.imoocdsp.com.key; 
+	# ssl会话cache 
+	ssl_session_cache shared:SSL:1m; 
+	# ssl会话超时时间 
+	ssl_session_timeout 5m; 
+	# 配置加密套件，写法遵循 openssl 标准 
+	ssl_protocols TLSv1 TLSv1.1 TLSv1.2; ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE; 
+	ssl_prefer_server_ciphers on; 
+	location / { 
+		proxy_pass http://tomcats/;
+	}
+}
+```
+
+### 10.动静分离
+
+特点：
+
+- 分布式开发
+- 前后端解耦
+- 静态资源归nginx
+- 接口服务化，可以给多个平台使用
+
+动静分离的方式：
+
+- CDN，就是把静态资源放在第三方服务器
+- nginx，将静态资源放到nginx里面
+
+动静分离存在的问题：
+
+- 跨域，可以通过SpringBoot，Nginx，JSONP等处理
+- 分布式会话，分布式缓存中间件Redis
+
+### 11.云端部署前后端服务器
+
+待解决TODO
+
+​	目前使用nginx反向代理java后端项目无法保存会话，暂时以tomcat启动，
+
+
+
+## 二.Keepalived
+
+​	Keepalived是基于VRRP协议的一款高可用软件。Keepailived有一台主服务器和多台备份服务器，在主服务器和备份服务器上面部署相同的服务配置，使用一个虚拟IP地址对外提供服务，当主服务器出现故障时，虚拟IP地址会自动漂移到备份服务器。
+
+概念：
+
+- 解决单点故障
+- 组件免费
+- 可以实现高可用HA机制
+- 基于VRRP协议
+
+Keepalived会虚拟一个ip，指向Nginx主机，心跳检测状态，当主机挂了后会自动转指向Nginx备机。
+
+### 配置
+
+1.下载keepalived压缩文件，解压，进入到解压路径里面，有一个configure，和nginx类似
+
+2.
+
+```shell
+./configure --prefix=/usr/local/keepalived --sysconf=/etc
+
+make
+
+make install
+```
+
+### **配置** Keepalived - 主
+
+#### **1.** **通过命令** vim keepalived.conf **打开配置文件**
+
+```shell
+global_defs { 
+	# 路由id：当前安装keepalived的节点主机标识符，保证全局唯一 
+	router_id keep_171 
+}
+vrrp_instance VI_1 { 
+	# 表示状态是MASTER主机还是备用机BACKUP 
+	state MASTER 
+	# 该实例绑定的网卡 
+	interface ens33 
+	# 保证主备节点一致即可 
+	virtual_router_id 51 
+	# 权重，master权重一般高于backup，如果有多个，那就是选举，谁的权重高，谁就当选 
+	priority 100 
+	# 主备之间同步检查时间间隔，单位秒 
+	advert_int 2 
+	# 认证权限密码，防止非法节点进入 
+	authentication { 
+		auth_type PASS 
+		auth_pass 1111 
+	}
+	# 虚拟出来的ip，可以有多个（vip） 
+	virtual_ipaddress { 
+		192.168.1.161 
+	} 
+}
+```
+
+##### **2.** **启动** **Keepalived**
+
+在sbin目录中进行启动（同nginx）
+
+##### 3.重载Keepalived
+
+```shell
+kill -HUP $(cat /var/run/keepalived.pid)
+```
+
+##### 4.问题解决
+
+1. **vip无法ping通**
+   keepalived.conf中vip配置好后，通过ip addr可以看到vip已经顺利挂载，但是无法ping通，并且防火墙都已关闭，原因是keepalived.conf配置中默认vrrp_strict打开了，需要把它注释掉。重启keepalived即可ping通。
+2. **映射端口无法访问**
+   vip可ping通后，访问vip映射端口无法访问，直接访问real_server的ip和端口可访问。
+   解决这个问题需要对lvs相关知识进行初步了解，详见《LVS手册》http://www.linuxidc.com/Linux/2016-03/129233.htm
+   在keepalived.conf中对virtual_server配置有
+   lb_kind可以设置为NAT、DR、TUN。这个选项直接关系到你做的 virtual_server和real_server能否进行正确映射。
+
+### **配置** Keepalived - 备
+
+##### **1.** 在另外一台服务器上打开配置文件keepalived.conf
+
+```shell
+global_defs { 
+	router_id keep_172 
+
+}
+vrrp_instance VI_1 { 
+	# 备用机设置为BACKUP 
+	state BACKUP 
+	interface ens33 
+	virtual_router_id 51 
+	# 权重低于MASTER 
+	priority 80 
+	advert_int 2 
+	authentication { 
+		auth_type PASS 
+		auth_pass 1111 
+	}
+	virtual_ipaddress { 
+		# 注意：主备两台的vip都是一样的，绑定到同一个vip 
+		192.168.1.161 
+	} 
+}
+```
+
+##### 2.启动keepalived即可
+
+```shell
+#查看运行情况
+ps -ef|grep keepalived
+```
+
+### Keepalived配置Nginx自动重启
+
+#### **1.** 增加Nginx重启检测脚本
+
+```shell
+vi /etc/keepalived/check_nginx_alive_or_not.sh
+```
+
+```sh
+#!/bin/bash 
+
+A=`ps -C nginx --no-header |wc -l` 
+# 判断nginx是否宕机，如果宕机了，尝试重启 
+if [ $A -eq 0 ];then 
+	/usr/local/nginx/sbin/nginx 
+	# 等待一小会再次检查nginx，如果没有启动成功，则停止keepalived，使其启动备用机 
+	sleep 3 
+	if [ `ps -C nginx --no-header |wc -l` -eq 0 ];then 
+		killall keepalived 
+	fi 
+fi
+```
+
+增加运行权限
+
+```shell
+chmod +x /etc/keepalived/check_nginx_alive_or_not.sh
+```
+
+#### **2.** 配置keepalived监听nginx脚本
+
+```shell
+vrrp_script check_nginx_alive { 
+	script "/etc/keepalived/check_nginx_alive_or_not.sh" 
+	interval 2 # 每隔两秒运行上一行脚本 
+	weight 10 # 如果脚本运行成功，则升级权重+10 
+}
+```
+
+#### **3.** **在** vrrp_instance **中新增监控的脚本**
+
+```shell
+track_script { 
+	check_nginx_alive # 追踪 nginx 脚本 
+}
+```
+
+#### **4.** 重启Keepalived使得配置文件生效
+
+```shell
+kill -HUP $(cat /var/run/keepalived.pid)
+```
+
+也可配置keepalived为系统命令，更方便
+
+### Keepalived的双主热备（双主机）
+
+TODO待补充
+
+https://blog.csdn.net/u012599988/article/details/82152224
+
+## 三.LVS
+
+​	LVS，Linux Virtual Server，Linux虚拟服务器，是基于四层的反向代理服务器。
+
+TODO详细待补充
+
+## 四.LVS+Keepalived+Nginx
+
+​	生产中一般由LVS负责接收请求，然后分发给Nginx，Nginx发给具体的服务器处理，处理完毕后Nginx通过一个统一的路由返回消息。Keepalived则负责各集群之间的管理，检测哪个机器节点有故障并转移主节点。
+
+TODO具体的待补充
